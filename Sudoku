@@ -1,0 +1,311 @@
+#!/bin/bash
+check_box()
+{
+    #needs number of Row or Column whose range is to be found
+
+
+    #checks the range in which given 
+    #value of row or column lyes
+    CC=$1       #Value of Column or Row where value is to be placed
+    
+    #below processes puts the range of either range or column
+    #in the array of two elements which are then further processed
+    if(((($CC>=0)) && (($CC<=2))))          
+    then 
+        ar[0]=0         
+        ar[1]=2
+    fi
+    if(((($CC>=3)) && (($CC<=5))))
+    then 
+        ar[0]=3
+        ar[1]=5
+    fi
+    if(((($CC>=6)) && (($CC<=8))))
+    then 
+        ar[0]=6
+        ar[1]=8
+    fi
+
+}
+
+box()   
+{       
+    #needs Value of Row and Column where data is to be stored
+    #Also Require the Data to be stored i.e Va
+    
+    local C1=0
+    local C2=0
+    local R1=0
+    local R2=0
+    # Above variables are used to store the ranges of Columns and Rows
+    local Row1=$1
+    local Col1=$2
+    local Va=$3
+    local r
+    declare -a ar[2]    
+    #array to be used for storing range from check_box Function Above
+    
+    # Finding Column Ranges
+    check_box $Col1
+    C1=${ar[0]}
+    C2=${ar[1]}
+    
+    # Finding Row Ranges
+    check_box $Row1
+    R1=${ar[0]}
+    R2=${ar[1]} 
+    # Calling Funtion to Check the Value in the ranges
+        box_range_check $R1 $R2 $C1 $C2 $Va
+    r=$?
+    return $r
+ }   
+ 
+box_range_check(){
+
+# needs Ranges of Row and Column and Value to be Stored
+R1=$1
+R2=$2
+C1=$3
+C2=$4
+Va=$5
+    
+    for((q=$R1;q<=$R2;q++))
+    do
+      for((b=$C1;b<=$C2;b++))
+      do 
+            #  Check those ranges if the values already exist 
+            #  In the range or not
+           if(($Va==${initial_mat[$q,$b]}))
+           then 
+           # If value is present Return 1
+             return 1
+           fi
+      done
+    done
+    # If no value is found it means that 
+    # There is not any similar value present in that 3*3 Box
+    return 0
+}
+
+check_column()      
+{
+        #needs no of column and row 
+        # also requires value as arguments
+
+        V=$1
+        H=$2
+        value=$3
+        for((k=0;k<9;k++))
+        do 
+            #finds the value in the whole row and column
+            #if it exists in any of them then, return 1 else 0
+            if(((($value == ${initial_mat[$k,$H]})) || (($value == ${initial_mat[$V,$k]})) ))
+            then 
+            return 1
+            fi
+        done
+        return 0    
+        
+}
+
+check()
+{
+    #Requires number of Row, Column and Value to be stored
+    Row=$1
+    Column=$2
+    Value=$3
+    
+    # Checking Whether Value is present i the 
+    # Given Whole Row or Column or not
+    check_column $Row $Column $Value
+    Col=$?
+    # Checking Whether Value is present in the 
+    # Box or not
+    box $Row $Column $Value
+    box_value=$?
+    
+    #if anyone returns 1 this Function should return 1 
+    # else 0
+    if(((($Col== 1)) || (($box_value==1))))
+    then
+    return 1
+    else
+    return 0
+    fi
+}
+
+
+
+
+display_initial(){
+
+#Simple Function to Display Initial Sudoku Matrix
+
+
+echo
+echo "             Sudoku Matrix"
+echo
+    for((i=-1;i<$row;i++))
+    do
+        if(($i==-1))
+        then
+        echo -n "     "
+        else
+        echo -n "  $((i+1))  "
+        fi
+        
+        for((j=-1;j<$column;j++))
+        do
+            if(($i==-1)) 
+            then
+                if(($j>=0))
+                then 
+                echo -n "$((j+1))  "
+                else
+                echo -n "  "
+                fi
+                if(( $j==$(($column-1)) ))
+                then 
+                echo
+                fi
+                
+            else
+            echo -n "${initial_mat[$i,$j]}  "
+            fi
+        done
+        echo
+    done
+    echo
+    echo
+}
+
+
+initial() {
+count=0
+for((i=1;i<=35;i++))
+do  
+        R=$(($RANDOM%9))                    #generate Random X-axis
+        C=$(($RANDOM%9))                    #generate Random Y-axis
+        Num=$(((($RANDOM%9))+1))            #generate Random num for some random position
+        check $R $C $Num
+        ftn=$?
+        #If there is already not any value other than "_" then, procceed
+        #also check whether this value can be inserted at this postion
+        #check it's column, row, and box
+               if(((( $ftn == 0)) && ((${initial_mat[$R,$C]}=="_"))))
+                then
+                        initial_mat[$R,$C]=$Num
+                        solid_matrix[$R,$C]=$Num
+                        ((count++))
+                else
+                #if there is already a num placed on that position 
+                #or it doesn't qualify the rules
+                #then, decrease the loop and run it once again
+                        ((i--))
+                fi
+                                    
+done 
+}
+solve()
+{      
+
+            echo
+            echo "Current Score is : $score"
+            display_initial
+            
+            # Reads the Location Where User wants to enter the value
+            read -p "Enter select the position where to insert the value (Row,Column) : " x1
+            read y1
+            ((x1-=1))
+            ((y1-=1))
+            #validates that position value is between (1,9)
+            # if value not in the range 
+            # then enter again
+            if(( (($x1>=0)) && (($x1<=8)) && (($y1>=0)) && (($y1<=8)) ))
+            then
+            
+                    # We use an additional Matrix solid_matrix which is equal to initial_mat
+                    # But it's values are not updated it remains 
+                    # the same as initial_mat is at the start
+                    # It is used so that user won't be able to update 
+                    # the values provided at the start
+                    
+                    #So, if in solid_matrix value is "_" then, procecced
+                    #else "Enter Again This value cannot be changed!!!"
+                    
+                    if((${solid_matrix[$x1,$y1]}=="_")) 
+                    then 
+                    
+                            # Input from the User
+                            read -p "Enter the Value to insert: " digit
+                            
+                            #validating the input values to be between (1,9)
+                            # if value not in the range 
+                            # then enter again
+                                if(( (($digit>=1)) && (($digit<=9)) ))
+                                then
+                                    solve_initial $x1 $y1 $digit
+                                else
+                                    echo "Enter Values Between (1,9) "
+                                    solve
+                                fi
+                                
+                                
+                    else
+                            echo "Enter Again This Value cannot be changed!!!"
+                            solve
+                    fi
+            else
+            echo "Enter Values Between (1,9) "
+            solve
+            fi
+
+}
+solve_initial(){
+
+
+                # Requires No. of Row and Column where value is to be placed
+                # Value which is to be stored
+                xx=$1
+                yy=$2
+                num=$3
+                
+                # Checking if the value could be stored
+                # at that position or not
+                check $xx $yy $num
+                result=$?
+                
+                # If result is "0" it means that 
+                # value can be stored
+                # or else "Value doesn't Qualify the Sudoku Rules"
+                if((result==0))
+                then
+                    initial_mat[$xx,$yy]=$num
+                    ((score+=2))
+                else
+                    echo "Given Value Doesn't Qualify the Sudoku Rules"
+                fi
+                solve
+            
+}
+
+
+declare -A initial_mat
+declare -A solid_matrix
+declare -A matrix
+row=9
+column=9
+score=0
+
+for((i=0;i<row;i++))
+do
+for((j=0;j<column;j++))
+do
+    initial_mat[$i,$j]="_"
+    solid_matrix[$i,$j]="_"
+done
+done
+initial
+clear
+solve
+exit 0
